@@ -1,5 +1,5 @@
 # Use latest jboss/base-jdk:11 image as the base
-FROM jboss/base-jdk:11
+FROM amazoncorretto:18-alpine3.15-jdk
 
 # Set the WILDFLY_VERSION env variable
 ENV WILDFLY_VERSION 26.1.1.Final
@@ -8,16 +8,23 @@ ENV JBOSS_HOME /opt/jboss/wildfly
 
 USER root
 
+
+RUN apk add tar
+RUN apk add curl
+
+RUN addgroup jboss && adduser -D -h /opt/jboss -s /sbin/nologin -G jboss jboss && \
+    chmod 755 /opt/jboss
+
 # Add the WildFly distribution to /opt, and make wildfly the owner of the extracted tar content
 # Make sure the distribution is available from a well-known place
-RUN cd $HOME \
-    && curl -L -O https://github.com/wildfly/wildfly/releases/download/$WILDFLY_VERSION/wildfly-$WILDFLY_VERSION.tar.gz \
-    && sha1sum wildfly-$WILDFLY_VERSION.tar.gz | grep $WILDFLY_SHA1 \
-    && tar xf wildfly-$WILDFLY_VERSION.tar.gz \
-    && mv $HOME/wildfly-$WILDFLY_VERSION $JBOSS_HOME \
-    && rm wildfly-$WILDFLY_VERSION.tar.gz \
-    && chown -R jboss:0 ${JBOSS_HOME} \
-    && chmod -R g+rw ${JBOSS_HOME}
+WORKDIR /opt/jboss
+
+RUN curl -L -O https://github.com/wildfly/wildfly/releases/download/$WILDFLY_VERSION/wildfly-preview-$WILDFLY_VERSION.tar.gz 
+RUN tar xf wildfly-preview-$WILDFLY_VERSION.tar.gz
+RUN mv wildfly-preview-$WILDFLY_VERSION $JBOSS_HOME 
+RUN rm wildfly-preview-$WILDFLY_VERSION.tar.gz 
+RUN chown -R jboss:0 ${JBOSS_HOME} 
+RUN chmod -R g+rw ${JBOSS_HOME}
 
 # Ensure signals are forwarded to the JVM process correctly for graceful shutdown
 ENV LAUNCH_JBOSS_IN_BACKGROUND true
